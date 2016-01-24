@@ -32,6 +32,7 @@ import org.jbsdiff.InvalidHeaderException;
 
 import javax.annotation.Generated;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -61,12 +62,16 @@ public class GenerateDataMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        File patch = new File(generatedResourceLocation, "paperMC.patch");
+
         // Create the directory if needed
         if (!generatedSourceLocation.exists()) {
             try {
                 FileUtils.forceMkdir(generatedSourceLocation);
-                FileUtils.forceDelete(generatedResourceLocation);
                 FileUtils.forceMkdir(generatedResourceLocation);
+                try {
+                    FileUtils.forceDelete(patch);
+                } catch (FileNotFoundException ignored) {}
             } catch (IOException e) {
                 throw new MojoExecutionException("Could not create source directory", e);
             }
@@ -93,9 +98,7 @@ public class GenerateDataMojo extends AbstractMojo {
         }
 
         getLog().info("Creating patch");
-        try {
-            final FileOutputStream paperMinecraftPatch = new FileOutputStream(new File(generatedResourceLocation, "paperMC.patch"));
-
+        try (final FileOutputStream paperMinecraftPatch = new FileOutputStream(patch)) {
             Diff.diff(vanillaMinecraftBytes, paperMinecraftBytes, paperMinecraftPatch);
         } catch (InvalidHeaderException | IOException | CompressorException e) {
             throw new MojoExecutionException("Error creating patches", e);
