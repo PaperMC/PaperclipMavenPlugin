@@ -9,15 +9,7 @@
 
 package com.destroystokyo.paperclipmavenplugin;
 
-import com.sun.codemodel.ClassType;
-import com.sun.codemodel.JAnnotationUse;
-import com.sun.codemodel.JArray;
-import com.sun.codemodel.JClassAlreadyExistsException;
-import com.sun.codemodel.JCodeModel;
-import com.sun.codemodel.JDefinedClass;
-import com.sun.codemodel.JDocComment;
-import com.sun.codemodel.JExpr;
-import com.sun.codemodel.JMod;
+import com.google.gson.Gson;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
@@ -30,17 +22,14 @@ import org.apache.maven.project.MavenProject;
 import org.jbsdiff.Diff;
 import org.jbsdiff.InvalidHeaderException;
 
-import javax.annotation.Generated;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Date;
 
 @Mojo(name = "generate-data", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class GenerateDataMojo extends AbstractMojo {
@@ -51,23 +40,23 @@ public class GenerateDataMojo extends AbstractMojo {
     @Parameter(required = true)
     private File paperMinecraft;
 
-    @Parameter(defaultValue = "target/generated-sources/java", required = false)
-    private File generatedSourceLocation;
-
     @Parameter(defaultValue = "src/main/resources", required = false)
     private File generatedResourceLocation;
+
+    @Parameter(required = true)
+    private String mcVersion;
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        File patch = new File(generatedResourceLocation, "paperMC.patch");
+        final File patch = new File(generatedResourceLocation, "paperMC.patch");
+        final File json = new File(generatedResourceLocation, "patch.json");
 
         // Create the directory if needed
-        if (!generatedSourceLocation.exists()) {
+        if (!generatedResourceLocation.exists()) {
             try {
-                FileUtils.forceMkdir(generatedSourceLocation);
                 FileUtils.forceMkdir(generatedResourceLocation);
                 try {
                     FileUtils.forceDelete(patch);
@@ -76,7 +65,6 @@ public class GenerateDataMojo extends AbstractMojo {
                 throw new MojoExecutionException("Could not create source directory", e);
             }
         }
-        project.addCompileSourceRoot(generatedSourceLocation.getAbsolutePath());
 
         if (!vanillaMinecraft.exists()) {
             throw new MojoExecutionException("vanillaMinecraft jar does not exist!");
@@ -104,58 +92,43 @@ public class GenerateDataMojo extends AbstractMojo {
             throw new MojoExecutionException("Error creating patches", e);
         }
 
-        final JCodeModel model = new JCodeModel();
-        final JDefinedClass definedClass;
-
+        // Add the SHA-256 hashes for the files
+        final MessageDigest digest;
         try {
-            Date now = new Date();
-
-            definedClass = model._class("com.destroystokyo.paperclip.Data", ClassType.CLASS);
-
-            // Add generated comment
-            JDocComment comment = definedClass.javadoc();
-            comment.append("Data generated on " + now.toString() + "\n\n");
-
-            // Add annotations
-            JAnnotationUse generated = definedClass.annotate(Generated.class);
-            generated.param("value", GenerateDataMojo.class.getCanonicalName());
-            generated.param("date", now.toString());
-
-            // Add the SHA-256 hashes for the files
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-
-            getLog().info("Hashing files");
-            final byte[] vanillaMinecraftHash = digest.digest(vanillaMinecraftBytes);
-            final byte[] paperMinecraftHash = digest.digest(paperMinecraftBytes);
-
-            JArray vanillaMinecraftHashArray = JExpr.newArray(model.BYTE);
-            for (byte b : vanillaMinecraftHash) {
-                vanillaMinecraftHashArray.add(JExpr.lit(b));
-            }
-            definedClass.field(JMod.PUBLIC | JMod.STATIC | JMod.FINAL, byte[].class, "vanillaMinecraftHash", vanillaMinecraftHashArray);
-
-            JArray paperMinecraftHashArray = JExpr.newArray(model.BYTE);
-            for (byte b : paperMinecraftHash) {
-                paperMinecraftHashArray.add(JExpr.lit(b));
-            }
-            definedClass.field(JMod.PUBLIC | JMod.STATIC | JMod.FINAL, byte[].class, "paperMinecraftHash", paperMinecraftHashArray);
-
-            Date end = new Date();
-            long time = end.getTime() - now.getTime();
-            comment.append("Generated in: " + time + " ms");
-
-            getLog().info("Generating Data class");
-            PrintStream tempStream = System.out;
-            System.setOut(new PrintStream(new OutputStream() {
-                @Override
-                public void write(int b) throws IOException {
-                    // do nothing
-                }
-            }));
-            model.build(generatedSourceLocation);
-            System.setOut(tempStream);
-        } catch (JClassAlreadyExistsException | NoSuchAlgorithmException | IOException e) {
-            throw new MojoExecutionException("Error generating Data.java", e);
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new MojoExecutionException("Could not create SHA-256 hasher.", e);
         }
+
+        getLog().info("Hashing files");
+        final byte[] vanillaMinecraftHash = digest.digest(vanillaMinecraftBytes);
+        final byte[] paperMinecraftHash = digest.digest(paperMinecraftBytes);
+
+        final PatchData data = new PatchData();
+        data.setOriginalHash(toHex(vanillaMinecraftHash));
+        data.setPatchedHash(toHex(paperMinecraftHash));
+        data.setPatch("paperMC.patch");
+        data.setSourceUrl("https://s3.amazonaws.com/Minecraft.Download/versions/" + mcVersion + "/minecraft_server." + mcVersion + ".jar");
+
+        getLog().info("Writing json file");
+        Gson gson = new Gson();
+        String jsonString = gson.toJson(data);
+
+        try (
+            final FileOutputStream fs = new FileOutputStream(json);
+            final OutputStreamWriter writer = new OutputStreamWriter(fs)
+        ) {
+            writer.write(jsonString);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String toHex(final byte[] hash) {
+        final StringBuilder sb = new StringBuilder(hash.length * 2);
+        for (byte aHash : hash) {
+            sb.append(String.format("%02X", aHash & 0xFF));
+        }
+        return sb.toString();
     }
 }
