@@ -110,6 +110,8 @@ public class GenerateDataMojo extends AbstractMojo {
         data.setPatch("paperMC.patch");
         data.setSourceUrl("https://s3.amazonaws.com/Minecraft.Download/versions/" + mcVersion + "/minecraft_server." + mcVersion + ".jar");
 
+        data.setVersion(mcVersion);
+
         getLog().info("Writing json file");
         Gson gson = new Gson();
         String jsonString = gson.toJson(data);

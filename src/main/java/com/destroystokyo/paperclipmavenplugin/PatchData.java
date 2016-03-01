@@ -26,4 +26,7 @@ public class PatchData {
 
     @SerializedName("patchedHash")
     private String patchedHash;
+
+    @SerializedName("version")
+    private String version;
 }
