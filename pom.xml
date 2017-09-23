@@ -19,8 +19,8 @@
 
     <distributionManagement>
         <snapshotRepository>
-            <id>nexus</id>
-            <url>http://nexus.demonwav.com/content/repositories/snapshots/</url>
+            <id>destroystokyo-snapshots</id>
+            <url>https://repo.destroystokyo.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
