@@ -18,7 +18,6 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.jbsdiff.Diff;
 import org.jbsdiff.InvalidHeaderException;
 
@@ -40,14 +39,14 @@ public class GenerateDataMojo extends AbstractMojo {
     @Parameter(required = true)
     private File paperMinecraft;
 
-    @Parameter(defaultValue = "src/main/resources", required = false)
+    @Parameter(defaultValue = "target/generated-resources")
     private File generatedResourceLocation;
 
     @Parameter(required = true)
     private String mcVersion;
 
-    @Parameter(defaultValue = "${project}", readonly = true, required = true)
-    private MavenProject project;
+    public GenerateDataMojo() {
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
