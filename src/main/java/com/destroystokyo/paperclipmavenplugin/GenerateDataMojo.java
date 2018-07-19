@@ -117,7 +117,7 @@ public class GenerateDataMojo extends AbstractMojo {
         data.setOriginalHash(toHex(vanillaMinecraftHash));
         data.setPatchedHash(toHex(paperMinecraftHash));
         data.setPatch("paperMC.patch");
-        data.setSourceUrl("https://launcher.mojang.com/mc/game/" + mcVersion + "/server/" + toHex(vanillaSha1) + "/server.jar");
+        data.setSourceUrl("https://launcher.mojang.com/mc/game/" + mcVersion + "/server/" + toHex(vanillaSha1).toLowerCase() + "/server.jar");
 
         data.setVersion(mcVersion);
 
