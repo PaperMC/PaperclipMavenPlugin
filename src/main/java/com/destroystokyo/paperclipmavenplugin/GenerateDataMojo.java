@@ -99,7 +99,17 @@ public class GenerateDataMojo extends AbstractMojo {
             throw new MojoExecutionException("Could not create SHA-256 hasher.", e);
         }
 
+        // Vanilla's URL uses a SHA1 hash of the vanilla server jar
+        // todo - bug demonwav about keeping this or what
+        final MessageDigest digestSha1;
+        try {
+            digestSha1 = MessageDigest.getInstance("SHA1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new MojoExecutionException("Could not create SHA1 hasher.", e);
+        }
+
         getLog().info("Hashing files");
+        final byte[] vanillaSha1 = digestSha1.digest(vanillaMinecraftBytes);
         final byte[] vanillaMinecraftHash = digest.digest(vanillaMinecraftBytes);
         final byte[] paperMinecraftHash = digest.digest(paperMinecraftBytes);
 
@@ -107,7 +117,7 @@ public class GenerateDataMojo extends AbstractMojo {
         data.setOriginalHash(toHex(vanillaMinecraftHash));
         data.setPatchedHash(toHex(paperMinecraftHash));
         data.setPatch("paperMC.patch");
-        data.setSourceUrl("https://s3.amazonaws.com/Minecraft.Download/versions/" + mcVersion + "/minecraft_server." + mcVersion + ".jar");
+        data.setSourceUrl("https://launcher.mojang.com/mc/game/" + mcVersion + "/server/" + toHex(vanillaSha1) + "/server.jar");
 
         data.setVersion(mcVersion);
 
