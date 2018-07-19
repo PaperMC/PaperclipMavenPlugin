@@ -20,7 +20,7 @@
     <distributionManagement>
         <snapshotRepository>
             <id>destroystokyo-snapshots</id>
-            <url>https://repo.destroystokyo.com/repository/maven-snapshots/</url>
+            <url>https://destroystokyo.com/repo/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
