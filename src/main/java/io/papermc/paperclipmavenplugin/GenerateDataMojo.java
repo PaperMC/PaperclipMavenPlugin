@@ -36,7 +36,7 @@ import org.jbsdiff.InvalidHeaderException;
 @Mojo(name = "generate-data", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class GenerateDataMojo extends AbstractMojo {
 
-    private static final String PROTOCOL_FILE = "com.destroystokyo.paper.daemon.protocol";
+    private static final String PROTOCOL_FILE = "io.papermc.paper.daemon.protocol";
 
     @Parameter(required = true)
     private Path vanillaMinecraft;
