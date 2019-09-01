@@ -9,7 +9,6 @@
 
 package io.papermc.paperclipmavenplugin;
 
-import com.google.gson.Gson;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +23,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Properties;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -53,7 +53,7 @@ public class GenerateDataMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         final Path patch = generatedResourceLocation.resolve("paperMC.patch");
-        final Path json = generatedResourceLocation.resolve("patch.json");
+        final Path propFile = generatedResourceLocation.resolve("patch.properties");
         final Path protocol = generatedResourceLocation.resolve("META-INF/" + PROTOCOL_FILE);
 
         // Create the directory if needed
@@ -135,16 +135,16 @@ public class GenerateDataMojo extends AbstractMojo {
         final byte[] vanillaMinecraftHash = digest.digest(vanillaMinecraftBytes);
         final byte[] paperMinecraftHash = digest.digest(paperMinecraftBytes);
 
-        final PatchData data = new PatchData();
-        data.originalHash = toHex(vanillaMinecraftHash);
-        data.patchedHash = toHex(paperMinecraftHash);
-        data.patch = "paperMC.patch";
-        data.sourceUrl = "https://launcher.mojang.com/v1/objects/" + toHex(vanillaSha1).toLowerCase() + "/server.jar";
-        data.version = mcVersion;
+        final Properties prop = new Properties();
+        prop.setProperty("originalHash", toHex(vanillaMinecraftHash));
+        prop.setProperty("patchedHash", toHex(paperMinecraftHash));
+        prop.setProperty("patch", "paperMC.patch");
+        prop.setProperty("sourceUrl", "https://launcher.mojang.com/v1/objects/" + toHex(vanillaSha1).toLowerCase() + "/server.jar");
+        prop.setProperty("version", mcVersion);
 
-        getLog().info("Writing json file");
-        try (final BufferedWriter writer = Files.newBufferedWriter(json)) {
-            new Gson().toJson(data, writer);
+        getLog().info("Writing properties file");
+        try (final BufferedWriter writer = Files.newBufferedWriter(propFile)) {
+            prop.store(writer, "Default Paperclip launch values. Can be overridden by placing a paperclip.properties file in the server directory.");
         } catch (final IOException e) {
             e.printStackTrace();
         }
