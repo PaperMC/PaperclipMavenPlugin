@@ -18,10 +18,10 @@
     </properties>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>papermc-snapshots</id>
-            <url>https://papermc.io/repo/repository/maven-snapshots/</url>
-        </snapshotRepository>
+        <repository>
+            <id>papermc-releases</id>
+            <url>https://papermc.io/repo/repository/maven-releases/</url>
+        </repository>
     </distributionManagement>
 
     <build>
